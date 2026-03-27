@@ -142,21 +142,26 @@ def infer_status(item_type, text):
     normalized = ' '.join(text.split())
     status_map = {
         'quiz': [
-            ('미응시', ['아직 응시하지 않았', '미응시', '응시 필요', '시도 없음']),
-            ('응시 완료', ['응시 완료', '제출 완료', '완료됨', '시도 완료']),
+            ('응시 완료', ['응시 완료', '제출 완료', '완료됨', '시도 완료', '재응시 불가']),
+            ('미응시', ['아직 응시하지 않았', '미응시', '응시 필요', '시도 없음', '답안 제출 가능 횟수']),
         ],
         'forum': [
-            ('미참여', ['토론 미참여', '게시하지 않았', '아직 게시하지 않았', '미참여']),
-            ('참여 완료', ['토론 참여 완료', '게시 완료', '참여 완료']),
+            ('참여 완료', ['내 게시물', '내 토론', '작성한 글', '수정', '삭제']),
+            ('미참여', ['토론 미참여', '게시하지 않았', '아직 게시하지 않았', '미참여', '새 토론 주제 추가']),
         ],
         'assign': [
-            ('미제출', ['제출 안 함', '미제출', '제출 필요', '제출되지 않았']),
             ('제출 완료', ['제출 완료', '제출됨', '채점 대기', '제출한 과제']),
+            ('미제출', ['제출 안 함', '미제출', '제출 필요', '제출되지 않았']),
         ],
     }
     for label, needles in status_map.get(item_type, []):
         if any(needle in normalized for needle in needles):
             return label
+
+    if item_type == 'forum' and '제목 작성자 답변 수 최종 활동 시간' in normalized:
+        return '미참여'
+    if item_type == 'quiz' and '답안 제출 가능 횟수' in normalized and '문제 풀기' not in normalized:
+        return '미응시'
     return '확인 실패'
 
 
@@ -228,7 +233,7 @@ def build_report(course_summaries, as_json=False):
             week_txt = f'{week}주차 | ' if week is not None else ''
             lines.append(f"- {course_name} | {week_txt}[{item['type']}] {item['title']} | {item['status']} | {due}")
     else:
-        lines.append('- 이번 주 미완료 항목 없음')
+        lines.append('- 실행 시점까지 미완료 항목 없음')
     return '\n'.join(lines).strip() + '\n'
 
 
