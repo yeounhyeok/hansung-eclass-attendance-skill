@@ -125,6 +125,17 @@ def discover_coursework_links(html):
 
 
 def extract_due_date(text):
+    table_patterns = [
+        r'종료\s*일시\s*(\d{4}-\d{2}-\d{2}\s*\d{2}:\d{2})',
+        r'마감\s*일시\s*(\d{4}-\d{2}-\d{2}\s*\d{2}:\d{2})',
+        r'종료\s*일시\s*(\d{4}\.\d{2}\.\d{2}\s*\d{2}:\d{2})',
+        r'마감\s*일시\s*(\d{4}\.\d{2}\.\d{2}\s*\d{2}:\d{2})',
+    ]
+    for pattern in table_patterns:
+        m = re.search(pattern, text, re.IGNORECASE)
+        if m:
+            return ' '.join(m.group(1).split())
+
     patterns = [
         r'(?:마감일|제출기한|종료일|Due date|Due)\s*[:：]?\s*([^\n]+)',
         r'(\d{4}-\d{2}-\d{2}\s*\d{2}:\d{2})',
@@ -158,10 +169,12 @@ def infer_status(item_type, text):
         if any(needle in normalized for needle in needles):
             return label
 
-    if item_type == 'forum' and '제목 작성자 답변 수 최종 활동 시간' in normalized:
-        return '미참여'
-    if item_type == 'quiz' and '답안 제출 가능 횟수' in normalized and '문제 풀기' not in normalized:
-        return '미응시'
+    if item_type == 'forum':
+        if '제목 작성자 답변 수 최종 활동 시간' in normalized:
+            return '미참여'
+    if item_type == 'quiz':
+        if '답안 제출 가능 횟수' in normalized and '문제 풀기' not in normalized:
+            return '미응시'
     return '확인 실패'
 
 
@@ -233,7 +246,7 @@ def build_report(course_summaries, as_json=False):
             week_txt = f'{week}주차 | ' if week is not None else ''
             lines.append(f"- {course_name} | {week_txt}[{item['type']}] {item['title']} | {item['status']} | {due}")
     else:
-        lines.append('- 실행 시점까지 미완료 항목 없음')
+        lines.append('- 이번 주 미완료 항목 없음')
     return '\n'.join(lines).strip() + '\n'
 
 

@@ -21,6 +21,18 @@ Coursework summary (quiz / forum / assignment):
 python3 skills/eclass-attendance/scripts/eclass_coursework_report.py
 ```
 
+Sync unfinished coursework to Linear + Google Calendar:
+
+```bash
+python3 skills/eclass-attendance/scripts/eclass_sync_to_linear_calendar.py
+```
+
+Dry run:
+
+```bash
+python3 skills/eclass-attendance/scripts/eclass_sync_to_linear_calendar.py --dry-run
+```
+
 Optional flags:
 
 ```bash
@@ -50,6 +62,15 @@ python3 skills/eclass-attendance/scripts/eclass_coursework_report.py --json
   - due date / open-close period when visible
   - submission or participation status when visible
 - Group results by course
+- Use attendance table progression to estimate the current study week and report cumulative items up to that point
+
+### Sync script
+- Read coursework JSON output
+- Keep only unfinished items (`미제출`, `미응시`, `미참여`)
+- Skip overdue items
+- Skip duplicates already present in Linear or Google Calendar
+- Create new items as **Todo** with priority applied via Linear issue creation
+- Create matching Google Calendar events with Linear links in the description
 
 ## Response style
 
