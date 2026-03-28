@@ -19,6 +19,10 @@ ITEM_PATTERNS = {
     'quiz': '/mod/quiz/view.php?id=',
     'forum': '/mod/forum/view.php?id=',
     'assign': '/mod/assign/view.php?id=',
+    'ubboard': '/mod/ubboard/view.php?id=',
+    'ubfile': '/mod/ubfile/view.php?id=',
+    'url': '/mod/url/view.php?id=',
+    'vod': '/mod/vod/view.php?id=',
 }
 
 
@@ -68,11 +72,13 @@ def find_courses_from_ubion(page):
 
 def parse_week_label(text):
     patterns = [
-        r'(\d+)주차',
+        r'(\d+)\s*주차',
+        r'(\d+)\s*Week',
         r'Lecture\s*(\d+)',
         r'\[Lecture\s*(\d+)\]',
         r'(\d+)장\)',
         r'실습\s*(\d+)\)',
+        r'(?:과거|기말|중간|프로젝트).*?(\d+)주차',
     ]
     for pattern in patterns:
         m = re.search(pattern, text, re.IGNORECASE)
@@ -82,6 +88,27 @@ def parse_week_label(text):
             except Exception:
                 continue
     return None
+
+
+def is_actionable_candidate(item_type, title):
+    text = (title or '').strip()
+    if not text:
+        return False
+
+    exclude_keywords = [
+        '이용안내', '공지사항', '한성대 공지사항', 'q&a', 'faq', '강좌 q&a', '강의자료 게시판',
+        '수업 중 질문에 대한 답변 게시판', '강의내용 q&a 게시판', '더보기', '저작권', '홈페이지',
+        '구매사이트', '결과물', '오리엔테이션', '강의교안', 'lecture', 'lab', 'solution', '파일'
+    ]
+    lowered = text.lower()
+    if any(k.lower() in lowered for k in exclude_keywords):
+        return False
+
+    if item_type in {'assign', 'quiz', 'forum'}:
+        return True
+
+    include_keywords = ['과제', '제출', '퀴즈', '토론', '보고서', '기말', '중간', '시험']
+    return any(k in text for k in include_keywords)
 
 
 def discover_coursework_links(html):
@@ -100,8 +127,10 @@ def discover_coursework_links(html):
         full = href if href.startswith('http') else BASE_URL + href
         if full in seen:
             continue
-        seen.add(full)
         title = a.get_text(' ', strip=True) or item_type
+        if not is_actionable_candidate(item_type, title):
+            continue
+        seen.add(full)
         week_label = None
         context = title
         try:
@@ -120,6 +149,8 @@ def discover_coursework_links(html):
             pass
         if week_label is None:
             week_label = parse_week_label(title)
+        if week_label is None and context:
+            week_label = parse_week_label(context)
         items.append({'type': item_type, 'title': title, 'href': full, 'week_label': week_label, 'context': context})
     return items
 
@@ -179,9 +210,19 @@ def infer_status(item_type, text):
 
 
 def inspect_coursework_item(page, item):
-    page.goto(item['href'])
-    page.wait_for_load_state('networkidle')
-    text = page.inner_text('body')
+    try:
+        page.goto(item['href'])
+        page.wait_for_load_state('networkidle')
+        text = page.inner_text('body')
+    except Exception as e:
+        return {
+            'type': item['type'],
+            'title': item['title'],
+            'href': item['href'],
+            'due': None,
+            'status': '확인 실패',
+            'error': str(e),
+        }
     due = extract_due_date(text)
     status = infer_status(item['type'], text)
     return {
@@ -278,8 +319,13 @@ def main():
             current_week = detect_current_week_from_attendance(page)
             eligible_items = [
                 item for item in items
-                if item.get('week_label') is not None and current_week is not None and item.get('week_label') <= current_week
+                if current_week is None or item.get('week_label') is None or item.get('week_label') <= current_week
             ]
+            if not eligible_items and items:
+                eligible_items = items
+
+            # If only URL/board assets are found, keep them through the same eligibility gate
+            # but allow the report to surface week-based items up to current_week.
             inspected = []
             for item in eligible_items:
                 inspected_item = inspect_coursework_item(page, item)

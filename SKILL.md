@@ -62,7 +62,9 @@ python3 skills/eclass-attendance/scripts/eclass_coursework_report.py --json
   - due date / open-close period when visible
   - submission or participation status when visible
 - Group results by course
-- Use attendance table progression to estimate the current study week and report cumulative items up to that point
+- Use attendance table progression to estimate the current study week
+- Report only items up to the current study week by default, so future-week coursework is not mixed into the summary
+- Prefer actionable coursework and suppress generic notice/Q&A/reference materials unless they clearly indicate exam/report/assignment-style work
 
 ### Sync script
 - Read coursework JSON output
