@@ -79,7 +79,8 @@ python3 skills/eclass-attendance/scripts/eclass_coursework_report.py --json
 When answering the user:
 - Summarize by course first
 - For attendance, keep it week-based
-- For coursework, show only actionable items first (미제출 / 미응시 / 미참여 / 진행 필요)
+- For coursework, show only actionable items first (미제출 / 미응시 / 진행 필요)
+- For forum/discussion items, report that the discussion exists (and due date if visible) rather than over-claiming completion state when participation parsing is ambiguous
 - Include due dates when available
 - If parsing fails, say `확인 실패`
 

@@ -184,13 +184,10 @@ def infer_status(item_type, text):
     normalized = ' '.join(text.split())
     status_map = {
         'quiz': [
-            ('응시 완료', ['응시 완료', '제출 완료', '완료됨', '시도 완료', '재응시 불가']),
-            ('미응시', ['아직 응시하지 않았', '미응시', '응시 필요', '시도 없음', '답안 제출 가능 횟수']),
+            ('응시 완료', ['응시 완료', '제출 완료', '제출됨', '완료됨', '시도 완료', '재응시 불가', '종료됨', '피드백 보기', '답안 제출 기회를 모두 사용하였습니다', '최종 점수는']),
+            ('미응시', ['아직 응시하지 않았', '미응시', '응시 필요', '시도 없음']),
         ],
-        'forum': [
-            ('참여 완료', ['내 게시물', '내 토론', '작성한 글', '수정', '삭제']),
-            ('미참여', ['토론 미참여', '게시하지 않았', '아직 게시하지 않았', '미참여', '새 토론 주제 추가']),
-        ],
+        'forum': [],
         'assign': [
             ('제출 완료', ['제출 완료', '제출됨', '채점 대기', '제출한 과제']),
             ('미제출', ['제출 안 함', '미제출', '제출 필요', '제출되지 않았']),
@@ -201,10 +198,11 @@ def infer_status(item_type, text):
             return label
 
     if item_type == 'forum':
-        if '제목 작성자 답변 수 최종 활동 시간' in normalized:
-            return '미참여'
+        return '토론 있음'
     if item_type == 'quiz':
-        if '답안 제출 가능 횟수' in normalized and '문제 풀기' not in normalized:
+        if any(k in normalized for k in ['종료됨', '제출됨', '피드백 보기', '답안 제출 기회를 모두 사용하였습니다', '최종 점수는']):
+            return '응시 완료'
+        if '답안 제출 가능 횟수' in normalized and not any(k in normalized for k in ['종료됨', '제출됨', '피드백 보기', '최종 점수는']):
             return '미응시'
     return '확인 실패'
 
@@ -275,7 +273,7 @@ def build_report(course_summaries, as_json=False):
             week = item.get('week_label')
             week_txt = f'{week}주차 | ' if week is not None else ''
             lines.append(f"  - {week_txt}[{item['type']}] {item['title']} | {item['status']} | {due}")
-            if item['status'] in ['미제출', '미응시', '미참여', '확인 실패']:
+            if item['status'] in ['미제출', '미응시', '확인 실패']:
                 actionable.append((course['course'], item))
         lines.append('')
 
